@@ -23,6 +23,3 @@ def ito_approx(a, b, init_val=0, T=1, N=1):
         Y += a(Y)*Delta + b(Y)*np.random.normal(0, Delta)
         val_dict[(n+1)*Delta] = Y
     return val_dict
-
-if __name__ == "__main__":
-    print(ito_approx(lambda x : 1, lambda x : x, N=5))
