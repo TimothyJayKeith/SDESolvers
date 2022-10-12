@@ -77,33 +77,122 @@ def sampleZ(zeta_1, zeta_2, var):
 
 
 def euler_iteration(a, b, Y, Delta, zeta=None):
+    """
+    Performs a single method of the ito_approximation with the Euler method
+
+    Parameters
+    ----------
+    a: lambda
+        The "drift" or deterministic portion of the equation
+    b: lambda
+        The "diffusion" or random portion of the equation
+    Y: float
+        The previous value in the iteration
+    Delta: float
+        Size of the time step
+    zeta: float
+        Point from a random distribution. If None, the function will randomly sample a point itself
+
+    Returns
+    -------
+    Next point in the iteration
+    """
     if zeta is None:
         zeta = np.random.normal(0, 1)
     return a(Y)*Delta + b(Y)*sampleW(zeta, Delta)
 
 
 def milstein_iteration(a, b, Y, Delta, zeta=None):
+    """
+    Performs a single method of the ito_approximation with the Milstein method
+
+    Parameters
+    ----------
+    a: lambda
+        The "drift" or deterministic portion of the equation
+    b: lambda
+        The "diffusion" or random portion of the equation
+    Y: float
+        The previous value in the iteration
+    Delta: float
+        Size of the time step
+    zeta: float
+        Point from a random distribution. If None, the function will randomly sample a point itself
+
+    Returns
+    -------
+    Next point in the iteration
+    """
     if zeta is None:
         zeta = np.random.normal(0, 1)
     return euler_iteration(a, b, Y, Delta, zeta) + (1/2)*b(Y)*nderiv(b, Y)*(sampleW(zeta, Delta) - Delta)
 
 
 def strong_taylor_iteration(a, b, Y, Delta, zeta_1=None, zeta_2=None):
+    """
+    Performs a single method of the ito_approximation with the Strong Taylor method
+
+    Parameters
+    ----------
+    a: lambda
+        The "drift" or deterministic portion of the equation
+    b: lambda
+        The "diffusion" or random portion of the equation
+    Y: float
+        The previous value in the iteration
+    Delta: float
+        Size of the time step
+    zeta: float
+        Point from a random distribution. If None, the function will randomly sample a point itself
+
+    Returns
+    -------
+    Next point in the iteration
+    """
     if zeta_1 is None:
         zeta_1 = np.random.normal(0, 1)
     if zeta_2 is None:
         zeta_2 = np.random.normal(0, 1)
+    Delta_W = sampleW(zeta_1, Delta)
+    Delta_Z = sampleZ(zeta_1, zeta_2, Delta)
+
     term_list = [milstein_iteration(a, b, Y, Delta, zeta=zeta_1)]
-    term_list.append(b(Y)*nderiv(a, Y)*sampleZ(zeta_1, zeta_2, Delta) + (1/2)*(a(Y)*nderiv(a, Y) + (1/2)*b(Y)**2*nderiv2(a, Y))*Delta**2)
-    term_list.append((a(Y)*nderiv(b, Y) + (1/2)*b(Y)**2*nderiv2(b, Y))*(sampleW(Delta, zeta_1)*Delta - sampleZ(Delta, zeta_1, zeta_2)))
-    term_list.append((1/2)*b(Y)*(b(Y)*nderiv2(b, Y) + nderiv(b, Y)**2)*((1/3)*sampleW(Delta, zeta_1)**2 - Delta)*sampleW(Delta, zeta_1))
+    term_list.append(b(Y)*nderiv(a, Y)*Delta_Z + (1/2)*(a(Y)*nderiv(a, Y) + (1/2)*b(Y)**2*nderiv2(a, Y))*Delta**2)
+    term_list.append((a(Y)*nderiv(b, Y) + (1/2)*b(Y)**2*nderiv2(b, Y))*(Delta_W*Delta - Delta_Z))
+    term_list.append((1/2)*b(Y)*(b(Y)*nderiv2(b, Y) + nderiv(b, Y)**2)*((1/3)*Delta_W**2 - Delta)*Delta_W)
     return np.sum(term_list)
 
 
-def ito_approx(a, b, init_val=1, T=1.0, N=10, method="euler", return_full_sim=False):
+def ito_approx(a, b, init_val=0.0, T=1.0, N=10, method="euler", return_full_sim=False):
+    """
+    Simulates the Ito process using any one of a variety of methods
+
+    Parameters
+    ----------
+    a: lambda
+        The "drift" or deterministic portion of the equation
+    b: lambda
+        The "diffusion" or random portion of the equation
+    init_val: float
+        The initial value of the ito process
+    T: float
+        Size of time interval (time is always assumed to start at 0)
+    N: positive int
+        Number of time steps
+    method: string
+        Name of desired approximation method. Defaults to Euler method,
+        but Milstein and Strong Taylor methods also available.
+    return_full_sim: bool
+        If set to true, returns a list with the value of the simulation at
+        each time step. Otherwise, only returns value at final time step.
+
+    Returns
+    -------
+    Either value of process at final time step or a list of values at
+    each time step, depending on value of return_full_sim.
+    """
     Delta = T/N
-    Y = init_val
-    val_dict = {0: Y}
+    Y = [init_val]
 
     if method in ["euler"]:
         iteration = euler_iteration
@@ -115,9 +204,8 @@ def ito_approx(a, b, init_val=1, T=1.0, N=10, method="euler", return_full_sim=Fa
         raise Exception(f"{method} is not a known iteration method")
     
     for n in range(N):
-        Y += iteration(a, b, Y, Delta)
-        val_dict[n+1] = Y
+        Y.append(Y[n] + iteration(a, b, Y[n], Delta))
     if return_full_sim:
-        return val_dict
-    else:
         return Y
+    else:
+        return Y[N]
