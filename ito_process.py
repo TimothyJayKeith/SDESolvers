@@ -75,7 +75,7 @@ def euler_ito_approx(a, b, init_val=0, T=1, N=1, return_full_sim=False):
     Y = init_val
     val_dict = {0: Y}
     for n in range(N):
-        Y += a(Y)*Delta + b(Y)*np.random.normal(0, Delta)
+        Y += a(Y)*Delta + b(Y)*np.random.normal(0, np.sqrt(Delta))
         val_dict[(n+1)*Delta] = Y
     if return_full_sim:
         return val_dict
@@ -117,7 +117,7 @@ def milstein_ito_approx(a, b, init_val=0, T=1, N=1, return_full_sim=False):
     Y = init_val
     val_dict = {0: Y}
     for n in range(N):
-        Delta_W = np.random.normal(0, Delta)
+        Delta_W = np.random.normal(0, np.sqrt(Delta))
         Y += a(Y)*Delta + b(Y)*Delta_W + (1/2)*b(Y)*nderiv(b, Y)*(Delta_W**2 - Delta)
         val_dict[(n+1)*Delta] = Y
     if return_full_sim:
