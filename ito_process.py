@@ -37,7 +37,7 @@ def nderiv2(f, x, h=2.0**(-7.0)):
     -------
     Approximate second derivative of function f at point x
     """
-    return (f(x + h) - 2*f(x) + f(x - h))/(2*h)
+    return (f(x + h) - 2*f(x) + f(x - h))/h**2
 
 
 def sampleW(zeta_1, var):
